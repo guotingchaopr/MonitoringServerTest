@@ -6,6 +6,16 @@ var server = restify.createServer({
     name: "MonitoringServer"
 });
 
+server.get("/favicon.ico", function (req, res, next) {
+    res.end();
+});
+var early_value = (function () {
+    var temp_arr = [];
+    for (var i = 0; i < 12; i++) {
+        temp_arr[i] = Math.ceil(Math.random() * 99 + 1);
+    }
+    return temp_arr;
+})();
 var cir_init = function () {
     var title = [["IVR", "进线"], ["按键", "挂断"], ["人工", "队列"], ["自助", "服务"], ["热线", "自营"], ["热线", "外包"], ["PC", "自助"], ["人工", "在线服务"], ["无线", "自助"]];
     var cir_json = {};
@@ -29,6 +39,23 @@ var cir_init = function () {
     return cir_json;
 }
 
+var hang_polling = function () {
+    var hp = [];
+    var hang_polling_title = [["挂断量"], ["流入量"], ["拨打量"], ["自助使用量", "人工转接率"], ["推送量", "使用量"], ["客户服务量"], ["流入量"]];
+    for (var i = 0; i < hang_polling_title.length; i++) {
+        var hpt = hang_polling_title[i];
+        var temp_hpt = [];
+        for (var n = 0; n < hpt.length; n++) {
+            temp_hpt[n] = {
+                title: hpt[n],
+                value: Math.ceil(Math.random() * 9999 + 1)
+            }
+        }
+        hp[i] = temp_hpt;
+    }
+    return hp;
+}
+
 var transfers_polling = function () {
     var transfers = [];
     for (var i = 0; i < 12; i++) {
@@ -37,10 +64,23 @@ var transfers_polling = function () {
     return transfers;
 }
 
-var cir_polling = function () {
+var early_polling = function () {
     var cir_earlyVal = [];
+    console.log(early_value);
     for (var i = 0; i < 9; i++) {
-        cir_earlyVal.push(Math.ceil(Math.random() * 100 + 1));
+        var rand = Math.round(Math.random() * 1);
+        var temp_ev = early_value[i];
+        if (temp_ev >= 100 || temp_ev <= 0) {
+            temp_ev = Math.ceil(Math.random() * 99 + 1);
+        } else {
+            if (rand) {
+                temp_ev++;
+            } else {
+                temp_ev--;
+            }
+        }
+        early_value[i] = temp_ev;
+        cir_earlyVal.push(temp_ev);
     }
     return cir_earlyVal;
 }
@@ -56,21 +96,23 @@ server.get('/init/:channel', function (req, res, next) {
     }
 });
 
+
 server.get('/polling/:node', function (req, res, next) {
     res.set("Access-Control-Allow-Origin", "*");
     switch (req.params.node) {
     case "transfers":
         res.json(transfers_polling());
+        return next();
     case "earlyVal":
-        res.json(cir_polling());
-    default:
-        next();
+        res.json(early_polling());
+        return next();
+    case "hangVal":
+        res.json(hang_polling());
+        return next();
     }
 });
 
-server.get("/favicon.icon", function (req, res, next) {
-    return next();
-});
+
 
 server.get(/[\s\S]*/, function (req, res, next) {
     console.log(" URL : " + req.url + " Times : " + new Date().toLocaleTimeString());
